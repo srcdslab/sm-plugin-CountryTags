@@ -5,6 +5,9 @@
 #include <cstrike>
 #include <geoip>
 #include <clientprefs>
+#include <sdktools>
+#include <sdkhooks>
+#tryinclude <ScoreboardCustomLevels>
 
 #define PLUGIN_NAME 	"Country Clan Tags"
 #define PLUGIN_VERSION 	"2.0"
@@ -14,12 +17,13 @@
 ConVar g_cvTagMethod = null;
 ConVar g_cvTagLen = null;
 ConVar g_cvBotTags = null;
+ConVar g_cvShowFlags = null;
 ConVar g_cvNetPublicAddr = null;
 
 ArrayList g_aryBotTags = null;
 KeyValues g_kvCountryFlags = null;
 
-char g_sCountryTag[MAXPLAYERS+1][6] = { "", ... };
+char g_sCountryTag[MAXPLAYERS+1][6];
 int g_iTagMethod = 1;
 int g_iTagLen = 2;
 
@@ -41,8 +45,10 @@ public Plugin myinfo =
 	url = "http://www.sourcemod.net/"
 };
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	MarkNativeAsOptional("SCL_GetLevel");
+
 	g_bLateLoad = late;
 	return APLRes_Success;
 }
@@ -54,7 +60,7 @@ public void OnPluginStart()
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvTagLen = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
 	g_cvBotTags = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
-	g_hShowFlags = CreateConVar("sm_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_cvShowFlags = CreateConVar("sm_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
 
 	HookConVarChange(g_cvTagMethod, OnConVarChange);
 	HookConVarChange(g_cvTagLen, OnConVarChange);
@@ -105,7 +111,7 @@ public void OnLibraryRemoved(const char[] name)
 		g_bCustomLevels = false;
 }
 
-public OnConVarChange(Handle hCvar, const char[] oldValue, const char[] newValue)
+public void OnConVarChange(Handle hCvar, const char[] oldValue, const char[] newValue)
 {
 	if (hCvar == g_cvTagMethod)
 	{
@@ -125,7 +131,7 @@ public OnConVarChange(Handle hCvar, const char[] oldValue, const char[] newValue
 public void OnClientPostAdminCheck(int client)
 {
 	char ip[16];
-	char code2[16];
+	char code2[3];
 
 	m_iLevel[client] = -1;
 
@@ -136,25 +142,19 @@ public void OnClientPostAdminCheck(int client)
 	}
 	else
 	{
-		if (!GetClientIP(client, ip, sizeof(ip)) || !IsLocalAddress(ip) && !GeoipCode2(ip, code2) || !g_hShowflag[client])
-			code2 = "UNKNOW";
+		if (!GetClientIP(client, ip, sizeof(ip)) || !IsLocalAddress(ip) && !GeoipCode2(ip, code2))
+			code2 = "???";
 
 		if (IsLocalAddress(ip))
 			GeoipCode2(g_sServerIp, code2);
 	}
 
-	if (KvJumpToKey(kv, code2))
-		m_iLevel[client] = KvGetNum(g_kvCountryFlags, "index");
-
-	KvRewind(g_kvCountryFlags);
-
-	if (StrEqual("UNKNOW", code2, true))
+	if (g_cvShowFlags.BoolValue)
 	{
-		code2 = "";
-		for (int i = 0; i < g_cvTagLen.IntValue; i++)
-		{
-			code2[i] = '?';
-		}
+		if (KvJumpToKey(g_kvCountryFlags, code2))
+			m_iLevel[client] = KvGetNum(g_kvCountryFlags, "index");
+
+		KvRewind(g_kvCountryFlags);
 	}
 
 	Format(g_sCountryTag[client], sizeof(g_sCountryTag[]), "[%s]", code2);
@@ -176,6 +176,9 @@ public void OnClientSettingsChanged(int client)
 
 public void OnMapStart()
 {
+	if (!g_cvShowFlags.BoolValue)
+		return;
+
 	char sBuffer[PLATFORM_MAX_PATH];
 	char m_cFilePath[PLATFORM_MAX_PATH];
 
@@ -207,6 +210,9 @@ public void OnMapStart()
 
 public void OnThinkPost(int m_iEntity)
 {
+	if (!g_cvShowFlags.BoolValue)
+		return;
+
 	int m_iLevelTemp[MAXPLAYERS+1] = 0;
 	GetEntDataArray(m_iEntity, m_iOffset, m_iLevelTemp, MAXPLAYERS+1);
 
@@ -216,8 +222,10 @@ public void OnThinkPost(int m_iEntity)
 		{
 			if(m_iLevel[i] != m_iLevelTemp[i])
 			{
+				#if defined _ScoreboardCustomLevels_included
 				if (g_bCustomLevels && SCL_GetLevel(i) > 0)
 					continue; // dont overwritte other custom level
+				#endif
 
 				SetEntData(m_iEntity, m_iOffset + (i * 4), m_iLevel[i]);
 			}
@@ -225,7 +233,7 @@ public void OnThinkPost(int m_iEntity)
 	}
 }
 
-stock bool TagPlayer(client)
+stock bool TagPlayer(int client)
 {
 	/* Should we be tagging this player? */
 	char sClanID[32];
@@ -240,7 +248,7 @@ stock bool TagPlayer(client)
 stock void ExplodeString_adt(const char[] text, const char[] split, Handle array, int size)
 {
 	/* Rewritten ExplodeString stock (string.inc) using an adt array. */
-	char sBuffer[size];
+	char[] sBuffer = new char[size];
 	int idx, reloc_idx;
 
 	while ((idx = SplitString(text[reloc_idx], split, sBuffer, size)) != -1)
