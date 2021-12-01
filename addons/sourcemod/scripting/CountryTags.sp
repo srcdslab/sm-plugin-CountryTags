@@ -1,6 +1,3 @@
-#pragma semicolon 1
-#pragma newdecls required
-
 #include <sourcemod>
 #include <cstrike>
 #include <geoip>
@@ -8,9 +5,13 @@
 #include <sdktools>
 #include <sdkhooks>
 #tryinclude <ScoreboardCustomLevels>
+#tryinclude <SteamWorks>
+
+#pragma semicolon 1
+#pragma newdecls required
 
 #define PLUGIN_NAME 	"Country Clan Tags"
-#define PLUGIN_VERSION 	"2.0"
+#define PLUGIN_VERSION 	"2.1"
 
 #define SIZEOF_BOTTAG 	4
 
@@ -62,6 +63,21 @@ public void OnPluginStart()
 	g_cvBotTags = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
 	g_cvShowFlags = CreateConVar("sm_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
 
+	g_cvNetPublicAddr = FindConVar("net_public_adr");
+	if (g_cvNetPublicAddr == null)
+	{
+		int ipaddress[4] = { 0, ... };
+
+		#if defined _SteamWorks_Included
+		SteamWorks_GetPublicIP(ipaddress);
+		#endif
+
+		char sPublicIPAddress[32];
+		Format(sPublicIPAddress, sizeof(sPublicIPAddress), "%d.%d.%d.%d", ipaddress[0], ipaddress[1], ipaddress[2], ipaddress[3]);
+
+		g_cvNetPublicAddr = CreateConVar("net_public_adr", sPublicIPAddress, "For servers behind NAT/DHCP meant to be exposed to the public internet, this is the public facing ip address string: (\"x.x.x.x\" )", FCVAR_NOTIFY);
+	}
+
 	HookConVarChange(g_cvTagMethod, OnConVarChange);
 	HookConVarChange(g_cvTagLen, OnConVarChange);
 	HookConVarChange(g_cvBotTags, OnConVarChange);
@@ -72,8 +88,6 @@ public void OnPluginStart()
 	g_aryBotTags = CreateArray(SIZEOF_BOTTAG);
 	PushArrayString(g_aryBotTags, "CAN");
 	PushArrayString(g_aryBotTags, "USA");
-
-	g_cvNetPublicAddr = FindConVar("net_public_adr");
 
 	m_iOffset = FindSendPropInfo("CCSPlayerResource", "m_nPersonaDataPublicLevel");
 
