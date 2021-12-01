@@ -188,7 +188,7 @@ public void OnClientSettingsChanged(int client)
 	}
 }
 
-public void OnMapStart()
+public void OnConfigsExecuted()
 {
 	if (!g_cvShowFlags.BoolValue)
 		return;
