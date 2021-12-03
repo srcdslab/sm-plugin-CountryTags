@@ -108,11 +108,6 @@ public void OnPluginStart()
 	}
 }
 
-public void OnConfigsExecuted()
-{
-	g_cvNetPublicAddr.GetString(g_sServerIp, sizeof(g_sServerIp));
-}
-
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "ScoreboardCustomLevels"))
@@ -190,6 +185,8 @@ public void OnClientSettingsChanged(int client)
 
 public void OnConfigsExecuted()
 {
+	g_cvNetPublicAddr.GetString(g_sServerIp, sizeof(g_sServerIp));
+
 	if (!g_cvShowFlags.BoolValue)
 		return;
 
