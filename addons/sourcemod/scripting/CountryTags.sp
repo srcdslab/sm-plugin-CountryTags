@@ -94,18 +94,6 @@ public void OnPluginStart()
 	g_bCustomLevels = LibraryExists("ScoreboardCustomLevels");
 
 	AutoExecConfig(true);
-
-	if (g_bLateLoad)
-	{
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientConnected(i))
-			{
-				OnClientPostAdminCheck(i);
-				OnClientSettingsChanged(i);
-			}
-		}
-	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -146,6 +134,10 @@ public void OnClientPostAdminCheck(int client)
 
 	if (IsFakeClient(client))
 	{
+		// Disabled tag for bots
+		if (GetArraySize(g_aryBotTags) <= 0)
+			return;
+
 		int idx = GetRandomInt(0, GetArraySize(g_aryBotTags) - 1);
 		GetArrayString(g_aryBotTags, idx, code2, SIZEOF_BOTTAG);
 	}
@@ -217,6 +209,19 @@ public void OnConfigsExecuted()
 	} while (KvGotoNextKey(g_kvCountryFlags));
 
 	KvRewind(g_kvCountryFlags);
+
+	if (g_bLateLoad)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientConnected(i))
+			{
+				OnClientPostAdminCheck(i);
+				OnClientSettingsChanged(i);
+			}
+		}
+		g_bLateLoad = false;
+	}
 }
 
 public void OnThinkPost(int m_iEntity)
