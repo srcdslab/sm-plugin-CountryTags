@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #tryinclude <ScoreboardCustomLevels>
-#tryinclude <SteamWorks>
+#tryinclude <ripext>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -20,6 +20,7 @@ ConVar g_cvTagLen = null;
 ConVar g_cvBotTags = null;
 ConVar g_cvShowFlags = null;
 ConVar g_cvNetPublicAddr = null;
+ConVar g_cvPublicIPEndpout = null;
 
 ArrayList g_aryBotTags = null;
 KeyValues g_kvCountryFlags = null;
@@ -30,8 +31,6 @@ int g_iTagLen = 2;
 
 int m_iOffset = -1;
 int m_iLevel[MAXPLAYERS+1] = { -1, ... };
-
-char g_sServerIp[16] = "";
 
 bool g_bCustomLevels = false;
 
@@ -61,22 +60,12 @@ public void OnPluginStart()
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvTagLen = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
 	g_cvBotTags = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
-	g_cvShowFlags = CreateConVar("sm_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
+	g_cvPublicIPEndpout = CreateConVar("sm_countrytags_public_ip_endpoint", "https://api.ipify.org?format=json", "Endpoint to query the server public ip");
 
 	g_cvNetPublicAddr = FindConVar("net_public_adr");
 	if (g_cvNetPublicAddr == null)
-	{
-		int ipaddress[4] = { 0, ... };
-
-		#if defined _SteamWorks_Included
-		SteamWorks_GetPublicIP(ipaddress);
-		#endif
-
-		char sPublicIPAddress[32];
-		Format(sPublicIPAddress, sizeof(sPublicIPAddress), "%d.%d.%d.%d", ipaddress[0], ipaddress[1], ipaddress[2], ipaddress[3]);
-
-		g_cvNetPublicAddr = CreateConVar("net_public_adr", sPublicIPAddress, "For servers behind NAT/DHCP meant to be exposed to the public internet, this is the public facing ip address string: (\"x.x.x.x\" )", FCVAR_NOTIFY);
-	}
+		g_cvNetPublicAddr = CreateConVar("net_public_adr", "", "For servers behind NAT/DHCP meant to be exposed to the public internet, this is the public facing ip address string: (\"x.x.x.x\" )", FCVAR_NOTIFY);
 
 	HookConVarChange(g_cvTagMethod, OnConVarChange);
 	HookConVarChange(g_cvTagLen, OnConVarChange);
@@ -147,7 +136,12 @@ public void OnClientPostAdminCheck(int client)
 			code2 = "???";
 
 		if (IsLocalAddress(ip))
-			GeoipCode2(g_sServerIp, code2);
+		{
+			char sNetIP[32];
+			g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
+			if (!GeoipCode2(sNetIP, code2))
+				code2 = "???";
+		}
 	}
 
 	if (g_cvShowFlags.BoolValue)
@@ -175,9 +169,34 @@ public void OnClientSettingsChanged(int client)
 	}
 }
 
+stock void GetServerPublicIP()
+{
+	char sEndpoint[256];
+	g_cvPublicIPEndpout.GetString(sEndpoint, sizeof(sEndpoint));
+	HTTPRequest request = new HTTPRequest(sEndpoint);
+
+	request.Get(OnPublicIPReceived);
+}
+
+void OnPublicIPReceived(HTTPResponse response, any value)
+{
+	if (response.Status != HTTPStatus_OK) {
+		return;
+	}
+
+	JSONObject jsonIP = view_as<JSONObject>(response.Data);
+
+	char sPublicIPAddress[32];
+	jsonIP.GetString("ip", sPublicIPAddress, sizeof(sPublicIPAddress));
+
+	g_cvNetPublicAddr.SetString(sPublicIPAddress, false, true);
+}
+
 public void OnConfigsExecuted()
 {
-	g_cvNetPublicAddr.GetString(g_sServerIp, sizeof(g_sServerIp));
+#if defined _ripext_included_
+	GetServerPublicIP();
+#endif
 
 	if (!g_cvShowFlags.BoolValue)
 		return;
