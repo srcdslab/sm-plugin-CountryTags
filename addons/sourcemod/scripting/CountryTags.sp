@@ -169,6 +169,7 @@ public void OnClientSettingsChanged(int client)
 	}
 }
 
+#if defined _ripext_included_
 stock void GetServerPublicIP()
 {
 	char sEndpoint[256];
@@ -191,6 +192,7 @@ void OnPublicIPReceived(HTTPResponse response, any value)
 
 	g_cvNetPublicAddr.SetString(sPublicIPAddress, false, true);
 }
+#endif
 
 public void OnConfigsExecuted()
 {
