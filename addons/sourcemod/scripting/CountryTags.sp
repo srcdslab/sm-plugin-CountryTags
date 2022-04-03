@@ -1,36 +1,33 @@
-#include <sourcemod>
+#include <clientprefs>
 #include <cstrike>
 #include <geoip>
-#include <clientprefs>
-#include <sdktools>
 #include <sdkhooks>
+#include <sdktools>
+#include <sourcemod>
 #tryinclude <ScoreboardCustomLevels>
-#tryinclude <ripext>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_NAME 	"Country Clan Tags"
-#define PLUGIN_VERSION 	"2.1"
+#define PLUGIN_NAME    "Country Clan Tags"
+#define PLUGIN_VERSION "2.2"
 
-#define SIZEOF_BOTTAG 	4
+#define SIZEOF_BOTTAG 4
 
 ConVar g_cvTagMethod = null;
-ConVar g_cvTagLen = null;
-ConVar g_cvBotTags = null;
+ConVar g_cvTagLen    = null;
+ConVar g_cvBotTags   = null;
 ConVar g_cvShowFlags = null;
-ConVar g_cvNetPublicAddr = null;
-ConVar g_cvPublicIPEndpout = null;
 
-ArrayList g_aryBotTags = null;
+ArrayList g_aryBotTags     = null;
 KeyValues g_kvCountryFlags = null;
 
-char g_sCountryTag[MAXPLAYERS+1][6];
-int g_iTagMethod = 1;
-int g_iTagLen = 2;
+char g_sCountryTag[MAXPLAYERS + 1][6];
+int  g_iTagMethod = 1;
+int  g_iTagLen    = 2;
 
-int m_iOffset = -1;
-int m_iLevel[MAXPLAYERS+1] = { -1, ... };
+int m_iOffset                = -1;
+int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
 
 bool g_bCustomLevels = false;
 
@@ -38,11 +35,11 @@ bool g_bLateLoad = false;
 
 public Plugin myinfo =
 {
-	name = PLUGIN_NAME,
-	author = "GoD-Tony, Franc1sco franug, maxime1907",
+	name        = PLUGIN_NAME,
+	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version = PLUGIN_VERSION,
-	url = "http://www.sourcemod.net/"
+	version     = PLUGIN_VERSION,
+	url         = "http://www.sourcemod.net/"
 };
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -55,24 +52,19 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	CreateConVar("sm_countrytags_version", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	CreateConVar("sm_countrytags_version", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
-	g_cvTagLen = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
-	g_cvBotTags = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
+	g_cvTagLen    = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
+	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
 	g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
-	g_cvPublicIPEndpout = CreateConVar("sm_countrytags_public_ip_endpoint", "https://api.ipify.org?format=json", "Endpoint to query the server public ip");
-
-	g_cvNetPublicAddr = FindConVar("net_public_adr");
-	if (g_cvNetPublicAddr == null)
-		g_cvNetPublicAddr = CreateConVar("net_public_adr", "", "For servers behind NAT/DHCP meant to be exposed to the public internet, this is the public facing ip address string: (\"x.x.x.x\" )", FCVAR_NOTIFY);
 
 	HookConVarChange(g_cvTagMethod, OnConVarChange);
 	HookConVarChange(g_cvTagLen, OnConVarChange);
 	HookConVarChange(g_cvBotTags, OnConVarChange);
 
 	g_iTagMethod = GetConVarInt(g_cvTagMethod);
-	g_iTagLen = GetConVarInt(g_cvTagLen);
+	g_iTagLen    = GetConVarInt(g_cvTagLen);
 
 	g_aryBotTags = CreateArray(SIZEOF_BOTTAG);
 	PushArrayString(g_aryBotTags, "CAN");
@@ -87,13 +79,13 @@ public void OnPluginStart()
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "ScoreboardCustomLevels"))
+	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = true;
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEqual(name, "ScoreboardCustomLevels"))
+	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = false;
 }
 
@@ -137,8 +129,12 @@ public void OnClientPostAdminCheck(int client)
 
 		if (IsLocalAddress(ip))
 		{
-			char sNetIP[32];
-			g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
+			char sNetIP[32] = "";
+
+			ConVar g_cvNetPublicAddr = FindConVar("net_public_adr");
+			if (g_cvNetPublicAddr != null)
+				g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
+
 			if (!GeoipCode2(sNetIP, code2))
 				code2 = "???";
 		}
@@ -169,37 +165,8 @@ public void OnClientSettingsChanged(int client)
 	}
 }
 
-#if defined _ripext_included_
-stock void GetServerPublicIP()
-{
-	char sEndpoint[256];
-	g_cvPublicIPEndpout.GetString(sEndpoint, sizeof(sEndpoint));
-	HTTPRequest request = new HTTPRequest(sEndpoint);
-
-	request.Get(OnPublicIPReceived);
-}
-
-void OnPublicIPReceived(HTTPResponse response, any value)
-{
-	if (response.Status != HTTPStatus_OK) {
-		return;
-	}
-
-	JSONObject jsonIP = view_as<JSONObject>(response.Data);
-
-	char sPublicIPAddress[32];
-	jsonIP.GetString("ip", sPublicIPAddress, sizeof(sPublicIPAddress));
-
-	g_cvNetPublicAddr.SetString(sPublicIPAddress, false, true);
-}
-#endif
-
 public void OnConfigsExecuted()
 {
-#if defined _ripext_included_
-	GetServerPublicIP();
-#endif
-
 	if (!g_cvShowFlags.BoolValue)
 		return;
 
@@ -226,8 +193,8 @@ public void OnConfigsExecuted()
 	{
 		Format(sBuffer, sizeof(sBuffer), "materials/panorama/images/icons/xp/level%i.png", KvGetNum(g_kvCountryFlags, "index"));
 		AddFileToDownloadsTable(sBuffer);
-
-	} while (KvGotoNextKey(g_kvCountryFlags));
+	}
+	while (KvGotoNextKey(g_kvCountryFlags));
 
 	KvRewind(g_kvCountryFlags);
 
@@ -250,19 +217,19 @@ public void OnThinkPost(int m_iEntity)
 	if (!g_cvShowFlags.BoolValue)
 		return;
 
-	int m_iLevelTemp[MAXPLAYERS+1] = 0;
-	GetEntDataArray(m_iEntity, m_iOffset, m_iLevelTemp, MAXPLAYERS+1);
+	int m_iLevelTemp[MAXPLAYERS + 1] = 0;
+	GetEntDataArray(m_iEntity, m_iOffset, m_iLevelTemp, MAXPLAYERS + 1);
 
-	for(int i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		if(m_iLevel[i] != -1)
+		if (m_iLevel[i] != -1)
 		{
-			if(m_iLevel[i] != m_iLevelTemp[i])
+			if (m_iLevel[i] != m_iLevelTemp[i])
 			{
-				#if defined _ScoreboardCustomLevels_included
+#if defined _ScoreboardCustomLevels_included
 				if (g_bCustomLevels && SCL_GetLevel(i) > 0)
-					continue; // dont overwritte other custom level
-				#endif
+					continue;    // dont overwritte other custom level
+#endif
 
 				SetEntData(m_iEntity, m_iOffset + (i * 4), m_iLevel[i]);
 			}
@@ -291,7 +258,7 @@ stock void ExplodeString_adt(const char[] text, const char[] split, Handle array
 	while ((idx = SplitString(text[reloc_idx], split, sBuffer, size)) != -1)
 	{
 		PushArrayString(array, sBuffer);
-	
+
 		reloc_idx += idx;
 
 		if (text[reloc_idx] == '\0')
@@ -309,16 +276,16 @@ stock bool IsLocalAddress(const char ip[16])
 {
 	// 192.168.0.0 - 192.168.255.255 (65,536 IP addresses)
 	// 10.0.0.0 - 10.255.255.255 (16,777,216 IP addresses)
-	if(StrContains(ip, "192.168", false) > -1 || StrContains(ip, "10.", false) > -1)
+	if (StrContains(ip, "192.168", false) > -1 || StrContains(ip, "10.", false) > -1)
 	{
 		return true;
 	}
 
 	// 172.16.0.0 - 172.31.255.255 (1,048,576 IP addresses)
 	char octets[4][3];
-	if(ExplodeString(ip, ".", octets, 4, 3) == 4)
+	if (ExplodeString(ip, ".", octets, 4, 3) == 4)
 	{
-		if(StrContains(octets[0], "172", false) > -1)
+		if (StrContains(octets[0], "172", false) > -1)
 		{
 			int octet = StringToInt(octets[1]);
 
