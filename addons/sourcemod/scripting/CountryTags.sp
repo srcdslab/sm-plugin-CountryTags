@@ -29,7 +29,9 @@ int  g_iTagLen    = 2;
 int m_iOffset                = -1;
 int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
 
+#if defined _ScoreboardCustomLevels_included
 bool g_bCustomLevels = false;
+#endif
 
 bool g_bLateLoad = false;
 
@@ -72,21 +74,27 @@ public void OnPluginStart()
 
 	m_iOffset = FindSendPropInfo("CCSPlayerResource", "m_nPersonaDataPublicLevel");
 
+#if defined _ScoreboardCustomLevels_included
 	g_bCustomLevels = LibraryExists("ScoreboardCustomLevels");
+#endif
 
 	AutoExecConfig(true);
 }
 
 public void OnLibraryAdded(const char[] name)
 {
+#if defined _ScoreboardCustomLevels_included
 	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = true;
+#endif
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
+#if defined _ScoreboardCustomLevels_included
 	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = false;
+#endif
 }
 
 public void OnConVarChange(Handle hCvar, const char[] oldValue, const char[] newValue)
@@ -125,7 +133,7 @@ public void OnClientPostAdminCheck(int client)
 	else
 	{
 		if (!GetClientIP(client, ip, sizeof(ip)) || !IsLocalAddress(ip) && !GeoipCode2(ip, code2))
-			code2 = "???";
+			code2 = "??";
 
 		if (IsLocalAddress(ip))
 		{
@@ -136,7 +144,7 @@ public void OnClientPostAdminCheck(int client)
 				g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
 
 			if (!GeoipCode2(sNetIP, code2))
-				code2 = "???";
+				code2 = "??";
 		}
 	}
 
@@ -217,7 +225,7 @@ public void OnThinkPost(int m_iEntity)
 	if (!g_cvShowFlags.BoolValue)
 		return;
 
-	int m_iLevelTemp[MAXPLAYERS + 1] = 0;
+	int m_iLevelTemp[MAXPLAYERS + 1] = { 0, ... };
 	GetEntDataArray(m_iEntity, m_iOffset, m_iLevelTemp, MAXPLAYERS + 1);
 
 	for (int i = 1; i <= MaxClients; i++)
