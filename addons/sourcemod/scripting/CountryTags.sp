@@ -59,7 +59,8 @@ public void OnPluginStart()
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvTagLen    = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
 	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
-	g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
+	if (SupportedEngine())
+		g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
 
 	HookConVarChange(g_cvTagMethod, OnConVarChange);
 	HookConVarChange(g_cvTagLen, OnConVarChange);
@@ -148,7 +149,7 @@ public void OnClientPostAdminCheck(int client)
 		}
 	}
 
-	if (g_cvShowFlags.BoolValue)
+	if (SupportedEngine() && g_cvShowFlags.BoolValue)
 	{
 		if (KvJumpToKey(g_kvCountryFlags, code2))
 			m_iLevel[client] = KvGetNum(g_kvCountryFlags, "index");
@@ -175,7 +176,7 @@ public void OnClientSettingsChanged(int client)
 
 public void OnConfigsExecuted()
 {
-	if (!g_cvShowFlags.BoolValue)
+	if (!SupportedEngine() || !g_cvShowFlags.BoolValue)
 		return;
 
 	char sBuffer[PLATFORM_MAX_PATH];
@@ -222,7 +223,7 @@ public void OnConfigsExecuted()
 
 public void OnThinkPost(int m_iEntity)
 {
-	if (!g_cvShowFlags.BoolValue)
+	if (!SupportedEngine() || !g_cvShowFlags.BoolValue)
 		return;
 
 	int m_iLevelTemp[MAXPLAYERS + 1] = { 0, ... };
@@ -243,6 +244,11 @@ public void OnThinkPost(int m_iEntity)
 			}
 		}
 	}
+}
+
+stock bool SupportedEngine()
+{
+	return (GetEngineVersion() == Engine_CSGO);
 }
 
 stock bool TagPlayer(int client)
