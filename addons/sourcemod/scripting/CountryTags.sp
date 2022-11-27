@@ -10,7 +10,6 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME    "Country Clan Tags"
-#define PLUGIN_VERSION "2.2"
 
 #define SIZEOF_BOTTAG 4
 
@@ -40,7 +39,7 @@ public Plugin myinfo =
 	name        = PLUGIN_NAME,
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = PLUGIN_VERSION,
+	version     = "2.2.0",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -54,11 +53,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	CreateConVar("sm_countrytags_version", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvTagLen    = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
 	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
+
 	if (SupportedEngine())
 		g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
 
