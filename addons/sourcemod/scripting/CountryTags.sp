@@ -4,28 +4,26 @@
 #include <sdkhooks>
 #include <sdktools>
 #include <sourcemod>
+#include <multicolors>
 #tryinclude <ScoreboardCustomLevels>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_NAME    "Country Clan Tags"
-
-#define SIZEOF_BOTTAG 4
+#define SIZEOF_BOTTAG 3
 
 ConVar g_cvTagMethod = null;
-ConVar g_cvTagLen    = null;
 ConVar g_cvBotTags   = null;
 ConVar g_cvShowFlags = null;
 
 ArrayList g_aryBotTags     = null;
 KeyValues g_kvCountryFlags = null;
+Cookie g_hCTagCookie;
 
 char g_sCountryTag[MAXPLAYERS + 1][6];
-int  g_iTagMethod = 1;
-int  g_iTagLen    = 2;
 
-int m_iOffset                = -1;
+int  g_iTagMethod = 1;
+int m_iOffset = -1;
 int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
 
 #if defined _ScoreboardCustomLevels_included
@@ -34,17 +32,21 @@ bool g_bCustomLevels = false;
 
 bool g_bLateLoad = false;
 
+bool g_bCTagEnabled[MAXPLAYERS + 1] = { true,  ... };
+bool g_bCheckCompleted[MAXPLAYERS + 1] = { false, ... };
+
 public Plugin myinfo =
 {
-	name        = PLUGIN_NAME,
+	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.2.0",
+	version     = "2.3.0",
 	url         = "http://www.sourcemod.net/"
 };
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	RegPluginLibrary("CountryTags");
 	MarkNativeAsOptional("SCL_GetLevel");
 
 	g_bLateLoad = late;
@@ -54,105 +56,174 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
-	g_cvTagLen    = CreateConVar("sm_countrytags_length", "3", "Country code length. (2 = CA,US,etc. 3 = CAN,USA,etc.)", FCVAR_NONE, true, 2.0, true, 3.0);
 	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
-
 	if (SupportedEngine())
 		g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
 
-	HookConVarChange(g_cvTagMethod, OnConVarChange);
-	HookConVarChange(g_cvTagLen, OnConVarChange);
-	HookConVarChange(g_cvBotTags, OnConVarChange);
+	g_cvTagMethod.AddChangeHook(OnConVarChange);
+	g_cvBotTags.AddChangeHook(OnConVarChange);
 
-	g_iTagMethod = GetConVarInt(g_cvTagMethod);
-	g_iTagLen    = GetConVarInt(g_cvTagLen);
+	g_iTagMethod = g_cvTagMethod.IntValue;
 
-	g_aryBotTags = CreateArray(SIZEOF_BOTTAG);
-	PushArrayString(g_aryBotTags, "CAN");
-	PushArrayString(g_aryBotTags, "USA");
+	g_aryBotTags = new ArrayList(SIZEOF_BOTTAG);
+	g_aryBotTags.PushString("CAN");
+	g_aryBotTags.PushString("USA");
 
 	m_iOffset = FindSendPropInfo("CCSPlayerResource", "m_nPersonaDataPublicLevel");
+	g_hCTagCookie = new Cookie("sm_countrytags_cookie", "Enable/Disable country tag!", CookieAccess_Private);
 
-#if defined _ScoreboardCustomLevels_included
-	g_bCustomLevels = LibraryExists("ScoreboardCustomLevels");
-#endif
+	if (g_iTagMethod != 0)
+		SetCookieMenuItem(CookieMenu_CountryTag, INVALID_HANDLE, "CountryTag Settings");
+
+	RegConsoleCmd("sm_ctag", Command_CountryTag, "This allows players to hide their flag");
+	RegConsoleCmd("sm_showflag", Command_CountryTag, "This allows players to hide their flag");
 
 	AutoExecConfig(true);
+	HookEvent("player_team", Event_PlayerTeam);
 }
 
+#if defined _ScoreboardCustomLevels_included
+public void OnAllPluginsLoaded()
+{
+	g_bCustomLevels = LibraryExists("ScoreboardCustomLevels");
+}
+#endif
+
+#if defined _ScoreboardCustomLevels_included
 public void OnLibraryAdded(const char[] name)
 {
-#if defined _ScoreboardCustomLevels_included
 	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = true;
-#endif
 }
+#endif
 
+#if defined _ScoreboardCustomLevels_included
 public void OnLibraryRemoved(const char[] name)
 {
-#if defined _ScoreboardCustomLevels_included
 	if (StrEqual(name, "ScoreboardCustomLevels"))
 		g_bCustomLevels = false;
-#endif
 }
+#endif
 
-public void OnConVarChange(Handle hCvar, const char[] oldValue, const char[] newValue)
+public void OnConVarChange(ConVar hCvar, const char[] oldValue, const char[] newValue)
 {
 	if (hCvar == g_cvTagMethod)
 	{
 		g_iTagMethod = StringToInt(newValue);
 	}
-	else if (hCvar == g_cvTagLen)
-	{
-		g_iTagLen = StringToInt(newValue);
-	}
 	else if (hCvar == g_cvBotTags)
 	{
-		ClearArray(g_aryBotTags);
+		g_aryBotTags.Clear();
 		ExplodeString_adt(newValue, ",", g_aryBotTags, SIZEOF_BOTTAG);
 	}
 }
 
+public void OnClientSettingsChanged(int client)
+{
+	if(IsClientInGame(client) && TagPlayer(client))
+	{
+		SetClientClanTagToCountryCode(client);
+	}
+}
+
+public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcastin)
+{
+	if (g_iTagMethod <= 0)
+		return;
+
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if(g_bCheckCompleted[client])
+		return;
+
+	int team = event.GetInt("team");
+	if(team == CS_TEAM_NONE || team == CS_TEAM_SPECTATOR)
+		return;
+	
+	g_bCheckCompleted[client] = true;
+
+	if(!g_sCountryTag[client][0])
+	{
+		CreateTimer(10.0, SetClientClanTag_Timer, GetClientUserId(client));
+		return;
+	}
+
+	SetClientClanTagToCountryCode(client);
+}
+
+public Action SetClientClanTag_Timer(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+
+	if(!client)
+		return Plugin_Stop;
+
+	if(!IsClientConnected(client))
+		return Plugin_Stop;
+
+	SetClientClanTagToCountryCode(client);
+	return Plugin_Stop;
+}
+
+public void OnClientCookiesCached(int client)
+{
+	if(IsFakeClient(client) || IsClientSourceTV(client))
+		return;
+
+	char cookieValue[3];
+	g_hCTagCookie.Get(client, cookieValue, sizeof(cookieValue));
+	g_bCTagEnabled[client] = (!StrEqual(cookieValue, "") && cookieValue[0] == '0') ? false : true;
+}
+
+public void OnClientConnected(int client)
+{
+	if(!IsFakeClient(client))
+		return;
+
+	char code2[3];
+
+	// Disabled tag for bots
+	if (g_aryBotTags.Length <= 0)
+		return;
+
+	int idx = GetRandomInt(0, g_aryBotTags.Length - 1);
+	g_aryBotTags.GetString(idx, code2, SIZEOF_BOTTAG);
+	Format(g_sCountryTag[client], sizeof(g_sCountryTag[]), "[%s]", code2);
+}
+
 public void OnClientPostAdminCheck(int client)
 {
+	if(IsFakeClient(client))
+		return;
+
 	char ip[16];
 	char code2[3];
 
 	m_iLevel[client] = -1;
 
-	if (IsFakeClient(client))
-	{
-		// Disabled tag for bots
-		if (GetArraySize(g_aryBotTags) <= 0)
-			return;
+	if (!GetClientIP(client, ip, sizeof(ip)) || !IsLocalAddress(ip) && !GeoipCode2(ip, code2))
+		code2 = "??";
 
-		int idx = GetRandomInt(0, GetArraySize(g_aryBotTags) - 1);
-		GetArrayString(g_aryBotTags, idx, code2, SIZEOF_BOTTAG);
-	}
-	else
+	if (IsLocalAddress(ip))
 	{
-		if (!GetClientIP(client, ip, sizeof(ip)) || !IsLocalAddress(ip) && !GeoipCode2(ip, code2))
-			code2 = "??";
+		char sNetIP[32] = "";
 
-		if (IsLocalAddress(ip))
+		ConVar g_cvNetPublicAddr = FindConVar("net_public_adr");
+		if (g_cvNetPublicAddr != null)
 		{
-			char sNetIP[32] = "";
-
-			ConVar g_cvNetPublicAddr = FindConVar("net_public_adr");
-			if (g_cvNetPublicAddr != null)
-				g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
-
-			if (!GeoipCode2(sNetIP, code2))
-				code2 = "??";
+			g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
+			delete g_cvNetPublicAddr;
 		}
-	}
 
+		if (!GeoipCode2(sNetIP, code2))
+			code2 = "??";
+	}
+	
 	if (SupportedEngine() && g_cvShowFlags.BoolValue)
 	{
-		if (KvJumpToKey(g_kvCountryFlags, code2))
-			m_iLevel[client] = KvGetNum(g_kvCountryFlags, "index");
+		if (g_kvCountryFlags.JumpToKey(code2))
+			m_iLevel[client] = g_kvCountryFlags.GetNum("index");
 
-		KvRewind(g_kvCountryFlags);
+		g_kvCountryFlags.Rewind();
 	}
 
 	Format(g_sCountryTag[client], sizeof(g_sCountryTag[]), "[%s]", code2);
@@ -161,15 +232,9 @@ public void OnClientPostAdminCheck(int client)
 public void OnClientDisconnect(int client)
 {
 	m_iLevel[client] = -1;
-}
-
-public void OnClientSettingsChanged(int client)
-{
-	/* Set a client's clan tag once they finished loading their own tag. */
-	if (IsClientInGame(client) && TagPlayer(client))
-	{
-		CS_SetClientClanTag(client, g_sCountryTag[client]);
-	}
+	g_bCTagEnabled[client] = true;
+	g_bCheckCompleted[client] = false;
+	g_sCountryTag[client][0] = '\0';
 }
 
 public void OnConfigsExecuted()
@@ -184,15 +249,19 @@ public void OnConfigsExecuted()
 
 	SDKHook(GetPlayerResourceEntity(), SDKHook_ThinkPost, OnThinkPost);
 
-	if (g_kvCountryFlags != null)
-		g_kvCountryFlags.Close();
+	delete g_kvCountryFlags;
+	g_kvCountryFlags = new KeyValues("CountryFlags");
+	if(!g_kvCountryFlags.ImportFromFile(m_cFilePath))
+	{
+		LogError("Could not find country flags config: %s", m_cFilePath);
+		delete g_kvCountryFlags;
+		return;
+	}
 
-	g_kvCountryFlags = CreateKeyValues("CountryFlags");
-	FileToKeyValues(g_kvCountryFlags, m_cFilePath);
-
-	if (!KvGotoFirstSubKey(g_kvCountryFlags))
+	if (!g_kvCountryFlags.GotoFirstSubKey())
 	{
 		LogError("Could not parse country flags config: %s", m_cFilePath);
+		delete g_kvCountryFlags;
 		return;
 	}
 
@@ -201,9 +270,9 @@ public void OnConfigsExecuted()
 		Format(sBuffer, sizeof(sBuffer), "materials/panorama/images/icons/xp/level%i.png", KvGetNum(g_kvCountryFlags, "index"));
 		AddFileToDownloadsTable(sBuffer);
 	}
-	while (KvGotoNextKey(g_kvCountryFlags));
+	while (g_kvCountryFlags.GotoNextKey());
 
-	KvRewind(g_kvCountryFlags);
+	g_kvCountryFlags.Rewind();
 
 	if (g_bLateLoad)
 	{
@@ -211,8 +280,11 @@ public void OnConfigsExecuted()
 		{
 			if (IsClientConnected(i))
 			{
+				if(AreClientCookiesCached(i))
+					OnClientCookiesCached(i);
+					
 				OnClientPostAdminCheck(i);
-				OnClientSettingsChanged(i);
+				SetClientClanTagToCountryCode(i);
 			}
 		}
 		g_bLateLoad = false;
@@ -252,6 +324,9 @@ stock bool SupportedEngine()
 stock bool TagPlayer(int client)
 {
 	/* Should we be tagging this player? */
+	if(!g_bCTagEnabled[client])
+		return false;
+
 	char sClanID[32];
 	GetClientInfo(client, "cl_clanid", sClanID, sizeof(sClanID));
 
@@ -261,7 +336,7 @@ stock bool TagPlayer(int client)
 	return false;
 }
 
-stock void ExplodeString_adt(const char[] text, const char[] split, Handle array, int size)
+stock void ExplodeString_adt(const char[] text, const char[] split, ArrayList array, int size)
 {
 	/* Rewritten ExplodeString stock (string.inc) using an adt array. */
 	char[] sBuffer = new char[size];
@@ -269,7 +344,7 @@ stock void ExplodeString_adt(const char[] text, const char[] split, Handle array
 
 	while ((idx = SplitString(text[reloc_idx], split, sBuffer, size)) != -1)
 	{
-		PushArrayString(array, sBuffer);
+		array.PushString(sBuffer);
 
 		reloc_idx += idx;
 
@@ -280,7 +355,7 @@ stock void ExplodeString_adt(const char[] text, const char[] split, Handle array
 	if (text[reloc_idx] != '\0')
 	{
 		strcopy(sBuffer, size, text[reloc_idx]);
-		PushArrayString(array, sBuffer);
+		array.PushString(sBuffer);
 	}
 }
 
@@ -306,4 +381,100 @@ stock bool IsLocalAddress(const char ip[16])
 	}
 
 	return false;
+}
+
+stock void SetClientClanTagToCountryCode(int client)
+{
+	if (g_iTagMethod <= 0)
+		return;
+
+	if(!g_sCountryTag[client][0])
+		return;
+
+	if(!TagPlayer(client))
+		return;
+
+	char tag[32];
+	CS_GetClientClanTag(client, tag, sizeof(tag));
+	if(g_iTagMethod == 2 && tag[0])
+		return;
+		
+	CS_SetClientClanTag(client, g_sCountryTag[client]);
+}
+
+stock void ToggleClientClanTag(int client)
+{
+	if (g_iTagMethod <= 0)
+	{
+		CReplyToCommand(client, "{green}[SM] {default}Country Tag functions are currently Disabled.");
+		return;
+	}
+	g_bCTagEnabled[client] = !g_bCTagEnabled[client];
+	
+	char cookieValue[4];
+	FormatEx(cookieValue, sizeof(cookieValue), "%d", g_bCTagEnabled[client]);
+	g_hCTagCookie.Set(client, cookieValue);
+	
+	CReplyToCommand(client, "{green}[SM] {default}You have {olive}%s {default}Country Tag!", (g_bCTagEnabled[client]) ? "Enabled" : "Disabled");
+	
+	if(g_bCTagEnabled[client])
+		SetClientClanTagToCountryCode(client);
+	else
+	{
+		char tag[32];
+		CS_GetClientClanTag(client, tag, sizeof(tag));
+		if(StrEqual(tag, g_sCountryTag[client]))
+			CS_SetClientClanTag(client, "");
+	}
+}
+
+public Action Command_CountryTag(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;
+		
+	if(!AreClientCookiesCached(client))
+	{
+		CReplyToCommand(client, "{green}[SM] {default}You have to be authorized to use this command!");
+		return Plugin_Handled;
+	}
+
+	ToggleClientClanTag(client);	
+	return Plugin_Handled;
+}
+
+public void CookieMenu_CountryTag(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
+{
+	if(action == CookieMenuAction_SelectOption)
+		DisplayCookieMenu(client);
+}
+
+stock void DisplayCookieMenu(int client)
+{
+	Menu menu = new Menu(Menu_CookieHandler);
+	menu.SetTitle("CountryTag Settings");
+
+	char item[32];
+	Format(item, sizeof(item), "%s Country Tag", (g_bCTagEnabled[client]) ? "Disable" : "Enable");
+	menu.AddItem("0", item);
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int Menu_CookieHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_End:
+			delete menu;
+
+		case MenuAction_Select:
+		{
+			ToggleClientClanTag(param1);
+			DisplayCookieMenu(param1);
+		}
+	}
+
+	return 0;
 }
