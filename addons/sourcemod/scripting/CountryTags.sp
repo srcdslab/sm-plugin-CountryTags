@@ -30,7 +30,9 @@ int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
 bool g_bCustomLevels = false;
 #endif
 
+bool g_bCSGO = false;
 bool g_bLateLoad = false;
+bool g_bShowFlags = false;
 
 bool g_bCTagEnabled[MAXPLAYERS + 1] = { true,  ... };
 bool g_bCheckCompleted[MAXPLAYERS + 1] = { false, ... };
@@ -40,7 +42,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.0",
+	version     = "2.3.1",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -55,19 +57,26 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	g_bCSGO = GetEngineVersion() == Engine_CSGO;
+
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
-	if (SupportedEngine())
+	if (g_bCSGO)
+	{
 		g_cvShowFlags = CreateConVar("sm_countrytags_showflags", "1", "Show country flags in scoreboard.", FCVAR_NONE, true, 0.0, true, 1.0);
+		g_cvShowFlags.AddChangeHook(OnConVarChange);
+		g_bShowFlags = g_cvShowFlags.BoolValue;
+	}
 
 	g_cvTagMethod.AddChangeHook(OnConVarChange);
 	g_cvBotTags.AddChangeHook(OnConVarChange);
 
 	g_iTagMethod = g_cvTagMethod.IntValue;
 
+	char sBuffer[124];
 	g_aryBotTags = new ArrayList(SIZEOF_BOTTAG);
-	g_aryBotTags.PushString("CAN");
-	g_aryBotTags.PushString("USA");
+	GetConVarString(g_cvBotTags, sBuffer, sizeof(sBuffer));
+	ExplodeString_adt(sBuffer, ",", g_aryBotTags, SIZEOF_BOTTAG);
 
 	m_iOffset = FindSendPropInfo("CCSPlayerResource", "m_nPersonaDataPublicLevel");
 	g_hCTagCookie = new Cookie("sm_countrytags_cookie", "Enable/Disable country tag!", CookieAccess_Private);
@@ -109,12 +118,16 @@ public void OnConVarChange(ConVar hCvar, const char[] oldValue, const char[] new
 {
 	if (hCvar == g_cvTagMethod)
 	{
-		g_iTagMethod = StringToInt(newValue);
+		g_iTagMethod = g_cvTagMethod.IntValue;
 	}
 	else if (hCvar == g_cvBotTags)
 	{
 		g_aryBotTags.Clear();
 		ExplodeString_adt(newValue, ",", g_aryBotTags, SIZEOF_BOTTAG);
+	}
+	else if (hCvar == g_cvShowFlags)
+	{
+		g_bShowFlags = g_cvShowFlags.BoolValue;
 	}
 }
 
@@ -176,7 +189,7 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientConnected(int client)
 {
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) || IsClientSourceTV(client))
 		return;
 
 	char code2[3];
@@ -218,7 +231,7 @@ public void OnClientPostAdminCheck(int client)
 			code2 = "??";
 	}
 	
-	if (SupportedEngine() && g_cvShowFlags.BoolValue)
+	if (g_bCSGO && g_bShowFlags)
 	{
 		if (g_kvCountryFlags.JumpToKey(code2))
 			m_iLevel[client] = g_kvCountryFlags.GetNum("index");
@@ -239,7 +252,7 @@ public void OnClientDisconnect(int client)
 
 public void OnConfigsExecuted()
 {
-	if (!SupportedEngine() || !g_cvShowFlags.BoolValue)
+	if (!g_bCSGO || !g_bShowFlags)
 		return;
 
 	char sBuffer[PLATFORM_MAX_PATH];
@@ -293,7 +306,7 @@ public void OnConfigsExecuted()
 
 public void OnThinkPost(int m_iEntity)
 {
-	if (!SupportedEngine() || !g_cvShowFlags.BoolValue)
+	if (!g_bCSGO || !g_bShowFlags)
 		return;
 
 	int m_iLevelTemp[MAXPLAYERS + 1] = { 0, ... };
@@ -314,11 +327,6 @@ public void OnThinkPost(int m_iEntity)
 			}
 		}
 	}
-}
-
-stock bool SupportedEngine()
-{
-	return (GetEngineVersion() == Engine_CSGO);
 }
 
 stock bool TagPlayer(int client)
@@ -398,7 +406,7 @@ stock void SetClientClanTagToCountryCode(int client)
 	CS_GetClientClanTag(client, tag, sizeof(tag));
 	if(g_iTagMethod == 2 && tag[0])
 		return;
-		
+
 	CS_SetClientClanTag(client, g_sCountryTag[client]);
 }
 
