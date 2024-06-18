@@ -5,7 +5,10 @@
 #include <sdktools>
 #include <sourcemod>
 #include <multicolors>
+
+#undef REQUIRE_PLUGIN
 #tryinclude <ScoreboardCustomLevels>
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -26,9 +29,8 @@ int  g_iTagMethod = 1;
 int m_iOffset = -1;
 int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
 
-#if defined _ScoreboardCustomLevels_included
-bool g_bCustomLevels = false;
-#endif
+bool g_bPluginCustomLevels = false;
+bool g_bCustomLevelsNative = false;
 
 bool g_bCSGO = false;
 bool g_bLateLoad = false;
@@ -42,7 +44,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.1",
+	version     = "2.3.2",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -91,28 +93,34 @@ public void OnPluginStart()
 	HookEvent("player_team", Event_PlayerTeam);
 }
 
-#if defined _ScoreboardCustomLevels_included
 public void OnAllPluginsLoaded()
 {
-	g_bCustomLevels = LibraryExists("ScoreboardCustomLevels");
+	g_bPluginCustomLevels = LibraryExists("ScoreboardCustomLevels");
+	VerifyNative_CustomLevels();
 }
-#endif
 
-#if defined _ScoreboardCustomLevels_included
 public void OnLibraryAdded(const char[] name)
 {
-	if (StrEqual(name, "ScoreboardCustomLevels"))
-		g_bCustomLevels = true;
+	if (strcmp(name, "ScoreboardCustomLevels", false) == 0)
+	{
+		g_bPluginCustomLevels = true;
+		VerifyNative_CustomLevels();
+	}
 }
-#endif
 
-#if defined _ScoreboardCustomLevels_included
 public void OnLibraryRemoved(const char[] name)
 {
-	if (StrEqual(name, "ScoreboardCustomLevels"))
-		g_bCustomLevels = false;
+	if (strcmp(name, "ScoreboardCustomLevels", false) == 0)
+	{
+		g_bPluginCustomLevels = false;
+		VerifyNative_CustomLevels();
+	}
 }
-#endif
+
+stock void VerifyNative_CustomLevels()
+{
+	g_bCustomLevelsNative = g_bPluginCustomLevels && CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "SCL_GetLevel") == FeatureStatus_Available;
+}
 
 public void OnConVarChange(ConVar hCvar, const char[] oldValue, const char[] newValue)
 {
@@ -184,7 +192,7 @@ public void OnClientCookiesCached(int client)
 
 	char cookieValue[3];
 	g_hCTagCookie.Get(client, cookieValue, sizeof(cookieValue));
-	g_bCTagEnabled[client] = (!StrEqual(cookieValue, "") && cookieValue[0] == '0') ? false : true;
+	g_bCTagEnabled[client] = (strcmp(cookieValue, "") != 0 && cookieValue[0] == '0') ? false : true;
 }
 
 public void OnClientConnected(int client)
@@ -318,10 +326,10 @@ public void OnThinkPost(int m_iEntity)
 		{
 			if (m_iLevel[i] != m_iLevelTemp[i])
 			{
-#if defined _ScoreboardCustomLevels_included
-				if (g_bCustomLevels && SCL_GetLevel(i) > 0)
+			#if defined _ScoreboardCustomLevels_included
+				if (g_bCustomLevelsNative && SCL_GetLevel(i) > 0)
 					continue;    // dont overwritte other custom level
-#endif
+			#endif
 
 				SetEntData(m_iEntity, m_iOffset + (i * 4), m_iLevel[i]);
 			}
@@ -431,7 +439,7 @@ stock void ToggleClientClanTag(int client)
 	{
 		char tag[32];
 		CS_GetClientClanTag(client, tag, sizeof(tag));
-		if(StrEqual(tag, g_sCountryTag[client]))
+		if(strcmp(tag, g_sCountryTag[client], false) == 0)
 			CS_SetClientClanTag(client, "");
 	}
 }
