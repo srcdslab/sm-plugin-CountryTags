@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.3",
+	version     = "2.3.4",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -76,7 +76,7 @@ public void OnPluginStart()
 		{
 			if (IsClientConnected(i))
 			{
-				if(AreClientCookiesCached(i))
+				if (AreClientCookiesCached(i))
 					OnClientCookiesCached(i);
 					
 				OnClientPostAdminCheck(i);
@@ -102,7 +102,7 @@ public void OnConVarChange(ConVar hCvar, const char[] oldValue, const char[] new
 
 public void OnClientSettingsChanged(int client)
 {
-	if(IsClientInGame(client) && TagPlayer(client))
+	if (IsClientInGame(client) && TagPlayer(client))
 	{
 		SetClientClanTagToCountryCode(client);
 	}
@@ -114,18 +114,18 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcasti
 		return;
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if(g_bCheckCompleted[client])
+	if (g_bCheckCompleted[client])
 		return;
 
 	int team = event.GetInt("team");
-	if(team == CS_TEAM_NONE || team == CS_TEAM_SPECTATOR)
+	if (team == CS_TEAM_NONE || team == CS_TEAM_SPECTATOR)
 		return;
 	
 	g_bCheckCompleted[client] = true;
 
-	if(!g_sCountryTag[client][0])
+	if (!g_sCountryTag[client][0])
 	{
-		CreateTimer(10.0, SetClientClanTag_Timer, GetClientUserId(client));
+		CreateTimer(10.0, SetClientClanTag_Timer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 		return;
 	}
 
@@ -136,10 +136,10 @@ public Action SetClientClanTag_Timer(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
 
-	if(!client)
+	if (!client)
 		return Plugin_Stop;
 
-	if(!IsClientConnected(client))
+	if (!IsClientConnected(client))
 		return Plugin_Stop;
 
 	SetClientClanTagToCountryCode(client);
@@ -148,7 +148,7 @@ public Action SetClientClanTag_Timer(Handle timer, int userid)
 
 public void OnClientCookiesCached(int client)
 {
-	if(IsFakeClient(client) || IsClientSourceTV(client))
+	if (IsFakeClient(client) || IsClientSourceTV(client))
 		return;
 
 	char cookieValue[3];
@@ -158,7 +158,7 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientConnected(int client)
 {
-	if(!IsFakeClient(client) || IsClientSourceTV(client))
+	if (!IsFakeClient(client) || IsClientSourceTV(client))
 		return;
 
 	char code2[3];
@@ -174,7 +174,7 @@ public void OnClientConnected(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	if(IsFakeClient(client))
+	if (IsFakeClient(client))
 		return;
 
 	char ip[16];
@@ -214,7 +214,7 @@ public void OnClientDisconnect(int client)
 stock bool TagPlayer(int client)
 {
 	/* Should we be tagging this player? */
-	if(!g_bCTagEnabled[client])
+	if (!g_bCTagEnabled[client])
 		return false;
 
 	char sClanID[32];
@@ -278,15 +278,15 @@ stock void SetClientClanTagToCountryCode(int client)
 	if (g_iTagMethod <= 0)
 		return;
 
-	if(!g_sCountryTag[client][0])
+	if (!g_sCountryTag[client][0])
 		return;
 
-	if(!TagPlayer(client))
+	if (!TagPlayer(client))
 		return;
 
 	char tag[32];
 	CS_GetClientClanTag(client, tag, sizeof(tag));
-	if(g_iTagMethod == 2 && tag[0])
+	if (g_iTagMethod == 2 && tag[0])
 		return;
 
 	CS_SetClientClanTag(client, g_sCountryTag[client]);
@@ -307,23 +307,23 @@ stock void ToggleClientClanTag(int client)
 	
 	CReplyToCommand(client, "{green}[SM] {default}You have {olive}%s {default}Country Tag!", (g_bCTagEnabled[client]) ? "Enabled" : "Disabled");
 	
-	if(g_bCTagEnabled[client])
+	if (g_bCTagEnabled[client])
 		SetClientClanTagToCountryCode(client);
 	else
 	{
 		char tag[32];
 		CS_GetClientClanTag(client, tag, sizeof(tag));
-		if(strcmp(tag, g_sCountryTag[client], false) == 0)
+		if (strcmp(tag, g_sCountryTag[client], false) == 0)
 			CS_SetClientClanTag(client, "");
 	}
 }
 
 public Action Command_CountryTag(int client, int args)
 {
-	if(!client)
+	if (!client)
 		return Plugin_Handled;
 		
-	if(!AreClientCookiesCached(client))
+	if (!AreClientCookiesCached(client))
 	{
 		CReplyToCommand(client, "{green}[SM] {default}You have to be authorized to use this command!");
 		return Plugin_Handled;
@@ -335,7 +335,7 @@ public Action Command_CountryTag(int client, int args)
 
 public void CookieMenu_CountryTag(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
 {
-	if(action == CookieMenuAction_SelectOption)
+	if (action == CookieMenuAction_SelectOption)
 		DisplayCookieMenu(client);
 }
 
