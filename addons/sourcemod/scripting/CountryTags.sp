@@ -278,7 +278,7 @@ stock void SetClientClanTagToCountryCode(int client)
 	if (g_iTagMethod <= 0)
 		return;
 
-	if (!client || !IsClientInGame(client))
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
 		return;
 
 	if (!g_sCountryTag[client][0])
