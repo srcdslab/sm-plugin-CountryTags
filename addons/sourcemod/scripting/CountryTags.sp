@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.5",
+	version     = "2.3.6",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -278,6 +278,9 @@ stock void SetClientClanTagToCountryCode(int client)
 	if (g_iTagMethod <= 0)
 		return;
 
+	if (!client || !IsClientInGame(client))
+		return;
+
 	if (!g_sCountryTag[client][0])
 		return;
 
@@ -368,4 +371,3 @@ public int Menu_CookieHandler(Menu menu, MenuAction action, int param1, int para
 
 	return 0;
 }
-
