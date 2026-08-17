@@ -5,9 +5,9 @@ This repository contains a SourceMod plugin for Source engine games that automat
 
 ## Technical Environment
 - **Language**: SourcePawn (.sp files)
-- **Platform**: SourceMod 1.11+ (see sourceknight.yaml for exact version)
+- **Platform**: SourceMod 1.12.x (see .github/workflows/ci.yml for exact version)
 - **Target Game**: CS:GO/CS2 (Counter-Strike games)
-- **Build System**: SourceKnight (Docker-based compilation)
+- **Build System**: Native GitHub Actions (rumblefrog/setup-sp)
 - **CI/CD**: GitHub Actions with automated building and releases
 
 ## Project Structure
@@ -19,18 +19,17 @@ This repository contains a SourceMod plugin for Source engine games that automat
 │   ├── addons/sourcemod/configs/        # Configuration files
 │   │   └── countryflags.cfg            # Country code to flag mappings
 │   └── materials/panorama/              # UI assets (flag images)
-├── .github/workflows/ci.yml             # CI/CD pipeline
-└── sourceknight.yaml                   # Build configuration
+└── .github/workflows/ci.yml             # CI/CD pipeline
 ```
 
 ## Build System
-The project uses **SourceKnight** for compilation:
-- Build configuration in `sourceknight.yaml`
-- Dependencies: SourceMod 1.11.0-git6934, MultiColors plugin
+The project uses native **GitHub Actions** for compilation:
+- Build configuration in `.github/workflows/ci.yml`
+- Dependencies: SourceMod 1.12.x, MultiColors plugin
 - Output: Compiled .smx files in `/addons/sourcemod/plugins`
 - CI builds automatically on push/PR and creates releases
 
-To build locally, use the SourceKnight Docker action or compatible toolchain.
+To build locally, install the SourcePawn compiler (spcomp) matching the version in `.github/workflows/ci.yml` and compile `addons/sourcemod/scripting/CountryTags.sp`.
 
 ## Core Functionality
 The plugin (`CountryTags.sp`):
@@ -125,7 +124,7 @@ Maps country codes to flag indices for display:
 - Both commands require cached client cookies and allow players to hide their country flags
 
 ## Testing & Validation
-- **Build Testing**: Ensure compilation succeeds with SourceKnight
+- **Build Testing**: Ensure compilation succeeds via the GitHub Actions CI workflow
 - **Runtime Testing**: Test on development server with multiple scenarios:
   - Players joining different teams
   - Late loading scenarios
@@ -148,8 +147,7 @@ Maps country codes to flag indices for display:
 
 ## Key Files to Understand
 1. `CountryTags.sp` - Main plugin logic
-2. `sourceknight.yaml` - Build dependencies and configuration
+2. `.github/workflows/ci.yml` - Build dependencies, configuration, and release automation
 3. `countryflags.cfg` - Country to flag ID mappings
-4. `.github/workflows/ci.yml` - Build and release automation
 
 When working on this plugin, prioritize stability and performance since it affects all players on a server. Always test changes thoroughly and consider the impact on server performance.
