@@ -32,7 +32,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.6",
+	version     = "2.3.7",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -148,7 +148,7 @@ public Action SetClientClanTag_Timer(Handle timer, int userid)
 }
 
 /**
- * Workaround for the CS:S update breaking the engine's automatic clan tag
+ * Workaround for the CS:S update (24/08/2026) breaking the engine's automatic clan tag
  * application. The client still sends its Steam group tag via a
  * "cmdkeyvalues" command, but the engine no longer applies it to m_szClan
  * on its own, so we have to call CS_SetClientClanTag ourselves.
