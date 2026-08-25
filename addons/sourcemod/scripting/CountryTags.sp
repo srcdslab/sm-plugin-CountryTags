@@ -18,6 +18,7 @@ ArrayList g_aryBotTags     = null;
 Cookie g_hCTagCookie;
 
 char g_sCountryTag[MAXPLAYERS + 1][6];
+char g_sRawClanTag[MAXPLAYERS + 1][32];
 
 int  g_iTagMethod = 1;
 int m_iLevel[MAXPLAYERS + 1] = { -1, ... };
@@ -31,7 +32,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.6",
+	version     = "2.3.7",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -146,6 +147,56 @@ public Action SetClientClanTag_Timer(Handle timer, int userid)
 	return Plugin_Stop;
 }
 
+/**
+ * Workaround for the CS:S update (24/08/2026) breaking the engine's automatic clan tag
+ * application. The client still sends its Steam group tag via a
+ * "cmdkeyvalues" command, but the engine no longer applies it to m_szClan
+ * on its own, so we have to call CS_SetClientClanTag ourselves.
+ *
+ * This must never fight with CountryTags: whenever this plugin is actively
+ * managing the client's tag (ShouldOverrideClanTag), we only remember the
+ * raw tag (used by the mode 2 "tagless players" check below) and let
+ * SetClientClanTagToCountryCode own the actual CS_SetClientClanTag call.
+ */
+public Action OnClientCommandKeyValues(int client, KeyValues kv)
+{
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+		return Plugin_Continue;
+
+	char clanTag[32];
+	kv.GetString("tag", clanTag, sizeof(clanTag), "");
+
+	if (clanTag[0] == '\0')
+		return Plugin_Continue;
+
+	strcopy(g_sRawClanTag[client], sizeof(g_sRawClanTag[]), clanTag);
+
+	if (ShouldOverrideClanTag(client))
+		return Plugin_Continue;
+
+	DataPack dp;
+	CreateDataTimer(0.1, Timer_SetClanTag, dp);
+	dp.WriteCell(GetClientUserId(client));
+	dp.WriteString(clanTag);
+
+	return Plugin_Continue;
+}
+
+public Action Timer_SetClanTag(Handle timer, DataPack pack)
+{
+	pack.Reset();
+	int userId = pack.ReadCell();
+	int client = GetClientOfUserId(userId);
+
+	char clanTag[32];
+	pack.ReadString(clanTag, sizeof(clanTag));
+
+	if (client && IsClientInGame(client) && !ShouldOverrideClanTag(client))
+		CS_SetClientClanTag(client, clanTag);
+
+	return Plugin_Stop;
+}
+
 public void OnClientCookiesCached(int client)
 {
 	if (IsFakeClient(client) || IsClientSourceTV(client))
@@ -209,6 +260,7 @@ public void OnClientDisconnect(int client)
 	g_bCTagEnabled[client] = true;
 	g_bCheckCompleted[client] = false;
 	g_sCountryTag[client][0] = '\0';
+	g_sRawClanTag[client][0] = '\0';
 }
 
 stock bool TagPlayer(int client)
@@ -275,24 +327,38 @@ stock bool IsLocalAddress(const char ip[16])
 
 stock void SetClientClanTagToCountryCode(int client)
 {
-	if (g_iTagMethod <= 0)
-		return;
-
-	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
-		return;
-
-	if (!g_sCountryTag[client][0])
-		return;
-
-	if (!TagPlayer(client))
-		return;
-
-	char tag[32];
-	CS_GetClientClanTag(client, tag, sizeof(tag));
-	if (g_iTagMethod == 2 && tag[0])
+	if (!ShouldOverrideClanTag(client))
 		return;
 
 	CS_SetClientClanTag(client, g_sCountryTag[client]);
+}
+
+/**
+ * Whether CountryTags should be the one controlling this client's clan tag
+ * right now. Also used to gate the CS:S "cmdkeyvalues" tag workaround so it
+ * never overwrites (or gets overwritten by) the country tag.
+ */
+stock bool ShouldOverrideClanTag(int client)
+{
+	if (g_iTagMethod <= 0)
+		return false;
+
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+		return false;
+
+	if (!g_sCountryTag[client][0])
+		return false;
+
+	if (!TagPlayer(client))
+		return false;
+
+	// Mode 2 only tags players without their own clan tag. The engine no
+	// longer syncs m_szClan on its own, so fall back to the raw tag we
+	// captured from the client's cmdkeyvalues instead of CS_GetClientClanTag.
+	if (g_iTagMethod == 2 && g_sRawClanTag[client][0])
+		return false;
+
+	return true;
 }
 
 stock void ToggleClientClanTag(int client)
