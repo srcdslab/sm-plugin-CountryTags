@@ -193,7 +193,6 @@ public void OnClientPostAdminCheck(int client)
 		if (g_cvNetPublicAddr != null)
 		{
 			g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
-			delete g_cvNetPublicAddr;
 		}
 
 		if (!GeoipCode2(sNetIP, code2))
@@ -266,7 +265,7 @@ stock bool IsLocalAddress(const char ip[16])
 		{
 			int octet = StringToInt(octets[1]);
 
-			return (!(octet < 16) || !(octet > 31));
+			return (octet >= 16 && octet <= 31);
 		}
 	}
 
@@ -278,7 +277,7 @@ stock void SetClientClanTagToCountryCode(int client)
 	if (g_iTagMethod <= 0)
 		return;
 
-	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
 		return;
 
 	if (!g_sCountryTag[client][0])
