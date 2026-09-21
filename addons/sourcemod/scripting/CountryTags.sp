@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.6",
+	version     = "2.3.7",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -193,7 +193,6 @@ public void OnClientPostAdminCheck(int client)
 		if (g_cvNetPublicAddr != null)
 		{
 			g_cvNetPublicAddr.GetString(sNetIP, sizeof(sNetIP));
-			delete g_cvNetPublicAddr;
 		}
 
 		if (!GeoipCode2(sNetIP, code2))
@@ -259,14 +258,14 @@ stock bool IsLocalAddress(const char ip[16])
 	}
 
 	// 172.16.0.0 - 172.31.255.255 (1,048,576 IP addresses)
-	char octets[4][3];
-	if (ExplodeString(ip, ".", octets, 4, 3) == 4)
+	char octets[4][4];
+	if (ExplodeString(ip, ".", octets, 4, 4) == 4)
 	{
-		if (StrContains(octets[0], "172", false) > -1)
+		if (StrEqual(octets[0], "172", false))
 		{
 			int octet = StringToInt(octets[1]);
 
-			return (!(octet < 16) || !(octet > 31));
+			return (octet >= 16 && octet <= 31);
 		}
 	}
 
@@ -278,7 +277,7 @@ stock void SetClientClanTagToCountryCode(int client)
 	if (g_iTagMethod <= 0)
 		return;
 
-	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
 		return;
 
 	if (!g_sCountryTag[client][0])
