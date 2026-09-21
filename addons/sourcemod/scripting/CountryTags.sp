@@ -258,10 +258,10 @@ stock bool IsLocalAddress(const char ip[16])
 	}
 
 	// 172.16.0.0 - 172.31.255.255 (1,048,576 IP addresses)
-	char octets[4][3];
-	if (ExplodeString(ip, ".", octets, 4, 3) == 4)
+	char octets[4][4];
+	if (ExplodeString(ip, ".", octets, 4, 4) == 4)
 	{
-		if (StrContains(octets[0], "172", false) > -1)
+		if (StrEqual(octets[0], "172", false))
 		{
 			int octet = StringToInt(octets[1]);
 
