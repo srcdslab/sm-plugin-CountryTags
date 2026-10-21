@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.7",
+	version     = "2.3.8",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -56,13 +56,13 @@ public void OnPluginStart()
 
 	char sBuffer[124];
 	g_aryBotTags = new ArrayList(SIZEOF_BOTTAG);
-	GetConVarString(g_cvBotTags, sBuffer, sizeof(sBuffer));
+	g_cvBotTags.GetString(sBuffer, sizeof(sBuffer));
 	ExplodeString_adt(sBuffer, ",", g_aryBotTags, SIZEOF_BOTTAG);
 
 	g_hCTagCookie = new Cookie("sm_countrytags_cookie", "Enable/Disable country tag!", CookieAccess_Private);
 
 	if (g_iTagMethod != 0)
-		SetCookieMenuItem(CookieMenu_CountryTag, INVALID_HANDLE, "CountryTag Settings");
+		SetCookieMenuItem(CookieMenu_CountryTag, 0, "CountryTag Settings");
 
 	RegConsoleCmd("sm_ctag", Command_CountryTag, "This allows players to hide their flag");
 	RegConsoleCmd("sm_showflag", Command_CountryTag, "This allows players to hide their flag");
