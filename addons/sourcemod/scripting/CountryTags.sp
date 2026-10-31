@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.8",
+	version     = "2.3.9",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -46,6 +46,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("CountryTags.phrases");
+
 	g_cvTagMethod = CreateConVar("sm_countrytags", "1", "Determines plugin functionality. (0 = Disabled, 1 = Tag all players, 2 = Tag tagless players)", FCVAR_NONE, true, 0.0, true, 2.0);
 	g_cvBotTags   = CreateConVar("sm_countrytags_bots", "CAN,USA", "Tags to assign bots. Separate tags by commas.", FCVAR_NONE);
 
@@ -298,7 +300,7 @@ stock void ToggleClientClanTag(int client)
 {
 	if (g_iTagMethod <= 0)
 	{
-		CReplyToCommand(client, "{green}[SM] {default}Country Tag functions are currently Disabled.");
+		CReplyToCommand(client, "{green}[SM] {default}%t", "Country Tag Functions Disabled");
 		return;
 	}
 	g_bCTagEnabled[client] = !g_bCTagEnabled[client];
@@ -307,7 +309,7 @@ stock void ToggleClientClanTag(int client)
 	FormatEx(cookieValue, sizeof(cookieValue), "%d", g_bCTagEnabled[client]);
 	g_hCTagCookie.Set(client, cookieValue);
 	
-	CReplyToCommand(client, "{green}[SM] {default}You have {olive}%s {default}Country Tag!", (g_bCTagEnabled[client]) ? "Enabled" : "Disabled");
+	CReplyToCommand(client, "{green}[SM] {default}%t", (g_bCTagEnabled[client]) ? "Country Tag Enabled" : "Country Tag Disabled");
 	
 	if (g_bCTagEnabled[client])
 		SetClientClanTagToCountryCode(client);
@@ -327,7 +329,7 @@ public Action Command_CountryTag(int client, int args)
 		
 	if (!AreClientCookiesCached(client))
 	{
-		CReplyToCommand(client, "{green}[SM] {default}You have to be authorized to use this command!");
+		CReplyToCommand(client, "{green}[SM] {default}%t", "Country Tag Not Authorized");
 		return Plugin_Handled;
 	}
 
@@ -337,17 +339,19 @@ public Action Command_CountryTag(int client, int args)
 
 public void CookieMenu_CountryTag(int client, CookieMenuAction action, any info, char[] buffer, int maxlen)
 {
-	if (action == CookieMenuAction_SelectOption)
+	if (action == CookieMenuAction_DisplayOption)
+		FormatEx(buffer, maxlen, "%T", "Country Tag Settings", client);
+	else if (action == CookieMenuAction_SelectOption)
 		DisplayCookieMenu(client);
 }
 
 stock void DisplayCookieMenu(int client)
 {
 	Menu menu = new Menu(Menu_CookieHandler);
-	menu.SetTitle("CountryTag Settings");
+	menu.SetTitle("%T", "Country Tag Settings", client);
 
-	char item[32];
-	Format(item, sizeof(item), "%s Country Tag", (g_bCTagEnabled[client]) ? "Disable" : "Enable");
+	char item[64];
+	Format(item, sizeof(item), "%T", (g_bCTagEnabled[client]) ? "Menu Disable Country Tag" : "Menu Enable Country Tag", client);
 	menu.AddItem("0", item);
 
 	menu.ExitButton = true;

@@ -1,0 +1,73 @@
+"Phrases"
+{
+	"Country Tag Settings"
+	{
+		"en"		"Country Tag Settings"
+		"fr"		"Paramètres du tag de pays"
+		"ru"		"Настройки тега страны"
+		"es"		"Ajustes de etiqueta de país"
+		"de"		"Länder-Tag-Einstellungen"
+		"pt"		"Configurações da tag de país"
+		"chi"		"国家标签设置"
+	}
+	"Country Tag Functions Disabled"
+	{
+		"en"		"Country Tag functions are currently disabled."
+		"fr"		"Les fonctions du tag de pays sont actuellement désactivées."
+		"ru"		"Функции тега страны сейчас отключены."
+		"es"		"Las funciones de etiqueta de país están desactivadas actualmente."
+		"de"		"Die Länder-Tag-Funktionen sind derzeit deaktiviert."
+		"pt"		"As funções da tag de país estão desativadas no momento."
+		"chi"		"国家标签功能当前已禁用。"
+	}
+	"Country Tag Enabled"
+	{
+		"en"		"You have {olive}enabled {default}Country Tag!"
+		"fr"		"Vous avez {olive}activé {default}le tag de pays !"
+		"ru"		"Вы {olive}включили {default}тег страны!"
+		"es"		"¡Has {olive}activado {default}la etiqueta de país!"
+		"de"		"Du hast den Länder-Tag {olive}aktiviert{default}!"
+		"pt"		"Você {olive}ativou {default}a tag de país!"
+		"chi"		"你已{olive}启用{default}国家标签！"
+	}
+	"Country Tag Disabled"
+	{
+		"en"		"You have {olive}disabled {default}Country Tag!"
+		"fr"		"Vous avez {olive}désactivé {default}le tag de pays !"
+		"ru"		"Вы {olive}отключили {default}тег страны!"
+		"es"		"¡Has {olive}desactivado {default}la etiqueta de país!"
+		"de"		"Du hast den Länder-Tag {olive}deaktiviert{default}!"
+		"pt"		"Você {olive}desativou {default}a tag de país!"
+		"chi"		"你已{olive}禁用{default}国家标签！"
+	}
+	"Country Tag Not Authorized"
+	{
+		"en"		"You have to be authorized to use this command!"
+		"fr"		"Vous devez être authentifié pour utiliser cette commande !"
+		"ru"		"Вы должны быть авторизованы, чтобы использовать эту команду!"
+		"es"		"¡Debes estar autorizado para usar este comando!"
+		"de"		"Du musst autorisiert sein, um diesen Befehl zu verwenden!"
+		"pt"		"Você precisa estar autorizado para usar este comando!"
+		"chi"		"你必须通过验证才能使用此命令！"
+	}
+	"Menu Enable Country Tag"
+	{
+		"en"		"Enable Country Tag"
+		"fr"		"Activer le tag de pays"
+		"ru"		"Включить тег страны"
+		"es"		"Activar etiqueta de país"
+		"de"		"Länder-Tag aktivieren"
+		"pt"		"Ativar tag de país"
+		"chi"		"启用国家标签"
+	}
+	"Menu Disable Country Tag"
+	{
+		"en"		"Disable Country Tag"
+		"fr"		"Désactiver le tag de pays"
+		"ru"		"Отключить тег страны"
+		"es"		"Desactivar etiqueta de país"
+		"de"		"Länder-Tag deaktivieren"
+		"pt"		"Desativar tag de país"
+		"chi"		"禁用国家标签"
+	}
+}
