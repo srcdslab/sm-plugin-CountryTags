@@ -9,6 +9,12 @@
 		"de"		"Länder-Tag-Einstellungen"
 		"pt"		"Configurações da tag de país"
 		"chi"		"国家标签设置"
+		"pl"		"Ustawienia tagu kraju"
+		"tr"		"Ülke etiketi ayarları"
+		"it"		"Impostazioni tag del paese"
+		"ua"		"Налаштування тегу країни"
+		"zho"		"國家標籤設定"
+		"cze"		"Nastavení značky země"
 	}
 	"Country Tag Functions Disabled"
 	{
@@ -19,6 +25,12 @@
 		"de"		"Die Länder-Tag-Funktionen sind derzeit deaktiviert."
 		"pt"		"As funções da tag de país estão desativadas no momento."
 		"chi"		"国家标签功能当前已禁用。"
+		"pl"		"Funkcje tagu kraju są obecnie wyłączone."
+		"tr"		"Ülke etiketi işlevleri şu anda devre dışı."
+		"it"		"Le funzioni del tag del paese sono attualmente disattivate."
+		"ua"		"Функції тегу країни наразі вимкнено."
+		"zho"		"國家標籤功能目前已停用。"
+		"cze"		"Funkce značky země jsou momentálně vypnuté."
 	}
 	"Country Tag Enabled"
 	{
@@ -29,6 +41,12 @@
 		"de"		"Du hast den Länder-Tag {olive}aktiviert{default}!"
 		"pt"		"Você {olive}ativou {default}a tag de país!"
 		"chi"		"你已{olive}启用{default}国家标签！"
+		"pl"		"Tag kraju został {olive}włączony{default}!"
+		"tr"		"Ülke etiketini {olive}etkinleştirdin{default}!"
+		"it"		"Hai {olive}attivato {default}il tag del paese!"
+		"ua"		"Ви {olive}увімкнули {default}тег країни!"
+		"zho"		"你已{olive}啟用{default}國家標籤!"
+		"cze"		"{olive}Zapnul {default}jsi značku země!"
 	}
 	"Country Tag Disabled"
 	{
@@ -39,6 +57,12 @@
 		"de"		"Du hast den Länder-Tag {olive}deaktiviert{default}!"
 		"pt"		"Você {olive}desativou {default}a tag de país!"
 		"chi"		"你已{olive}禁用{default}国家标签！"
+		"pl"		"Tag kraju został {olive}wyłączony{default}!"
+		"tr"		"Ülke etiketini {olive}devre dışı bıraktın{default}!"
+		"it"		"Hai {olive}disattivato {default}il tag del paese!"
+		"ua"		"Ви {olive}вимкнули {default}тег країни!"
+		"zho"		"你已{olive}停用{default}國家標籤!"
+		"cze"		"{olive}Vypnul {default}jsi značku země!"
 	}
 	"Country Tag Not Authorized"
 	{
@@ -49,6 +73,12 @@
 		"de"		"Du musst autorisiert sein, um diesen Befehl zu verwenden!"
 		"pt"		"Você precisa estar autorizado para usar este comando!"
 		"chi"		"你必须通过验证才能使用此命令！"
+		"pl"		"Musisz mieć uprawnienia, aby użyć tej komendy!"
+		"tr"		"Bu komutu kullanmak için yetkili olmalısın!"
+		"it"		"Devi essere autorizzato per usare questo comando!"
+		"ua"		"Ви повинні мати дозвіл, щоб використовувати цю команду!"
+		"zho"		"你必須獲得授權才能使用此指令!"
+		"cze"		"Pro použití tohoto příkazu musíš mít oprávnění!"
 	}
 	"Menu Enable Country Tag"
 	{
@@ -59,6 +89,12 @@
 		"de"		"Länder-Tag aktivieren"
 		"pt"		"Ativar tag de país"
 		"chi"		"启用国家标签"
+		"pl"		"Włącz tag kraju"
+		"tr"		"Ülke etiketini etkinleştir"
+		"it"		"Attiva tag del paese"
+		"ua"		"Увімкнути тег країни"
+		"zho"		"啟用國家標籤"
+		"cze"		"Zapnout značku země"
 	}
 	"Menu Disable Country Tag"
 	{
@@ -69,5 +105,11 @@
 		"de"		"Länder-Tag deaktivieren"
 		"pt"		"Desativar tag de país"
 		"chi"		"禁用国家标签"
+		"pl"		"Wyłącz tag kraju"
+		"tr"		"Ülke etiketini devre dışı bırak"
+		"it"		"Disattiva tag del paese"
+		"ua"		"Вимкнути тег країни"
+		"zho"		"停用國家標籤"
+		"cze"		"Vypnout značku země"
 	}
 }
