@@ -6,6 +6,10 @@
 #include <sourcemod>
 #include <multicolors>
 
+#undef REQUIRE_PLUGIN
+#include <vip_core>
+#define REQUIRE_PLUGIN
+
 #pragma semicolon 1
 #pragma newdecls required
 
@@ -31,7 +35,7 @@ public Plugin myinfo =
 	name        = "Country Clan Tags",
 	author      = "GoD-Tony, Franc1sco franug, maxime1907",
 	description = "Assigns clan tags and flags based on the player's country",
-	version     = "2.3.12",
+	version     = "2.3.13",
 	url         = "http://www.sourcemod.net/"
 };
 
@@ -210,6 +214,31 @@ public void OnClientDisconnect(int client)
 	g_bCTagEnabled[client] = true;
 	g_bCheckCompleted[client] = false;
 	g_sCountryTag[client][0] = '\0';
+}
+
+/**
+ * [VIP] Tag (vip_core feature "Tag") shows the VIP tag in place of the country tag.
+ * When a VIP turns it off or loses VIP, their tag is cleared: put the country tag back
+ * on the next frame, once VIP_Tag has restored the player's own tag.
+ */
+public Action VIP_OnFeatureToggle(int client, const char[] feature, VIP_ToggleState oldStatus, VIP_ToggleState &newStatus)
+{
+	if (strcmp(feature, "Tag") == 0 && newStatus != ENABLED)
+		RequestFrame(Frame_RestoreCountryTag, GetClientUserId(client));
+
+	return Plugin_Continue;
+}
+
+public void VIP_OnVIPClientRemoved(int client, const char[] reason, int admin)
+{
+	RequestFrame(Frame_RestoreCountryTag, GetClientUserId(client));
+}
+
+public void Frame_RestoreCountryTag(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client)
+		SetClientClanTagToCountryCode(client);
 }
 
 stock bool TagPlayer(int client)

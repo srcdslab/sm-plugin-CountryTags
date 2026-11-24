@@ -38,9 +38,12 @@ jobs:
       - name: Install dependencies
         run: |
           set -euo pipefail
-          mkdir -p addons/sourcemod/scripting/include deps/multicolors
+          mkdir -p addons/sourcemod/scripting/include deps/multicolors deps/vip_core
           git clone --depth=1 https://github.com/srcdslab/sm-plugin-MultiColors.git deps/multicolors
           cp -R deps/multicolors/addons/sourcemod/scripting/include/* addons/sourcemod/scripting/include/
+          # Optional dependency: forwards from VIP_Core (VIP tag priority)
+          git clone --depth=1 https://github.com/srcdslab/sm-plugin-VIP-Core.git deps/vip_core
+          cp -R deps/vip_core/addons/sourcemod/scripting/include/* addons/sourcemod/scripting/include/
 
       - name: Build sourcemod plugin
         working-directory: addons/sourcemod/scripting
